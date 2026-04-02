@@ -1,0 +1,161 @@
+import { Router, Request, Response } from 'express';
+import { findUserByEmail } from '../controllers/Auth.controller';
+import { registerCompany, generateKeyPair, getPublicKey, deleteKeyPair } from '../controllers/Company.controller';
+import {hash, compare} from 'bcrypt'; // Assuming you use bcrypt for hashing/checking
+import jwt from 'jsonwebtoken';
+import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware';
+import { JWTAuthRequest } from '../types/request';
+
+const isValidEmail = (email: string): email is string => {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email);
+};
+
+const JWT_SECRET = process.env.JWT_SECRET as string;
+
+const authRouter = Router();
+
+// POST /api/auth/register
+authRouter.post('/register', async (req: Request, res: Response) => {
+  try {
+    const { companyName, admin_email, admin_name, password } = req.body;
+
+    // 1. Basic Sanitization & Validation
+    if (!admin_email || !password) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+    
+    if(!isValidEmail(admin_email)){
+      return res.status(422).json({ error: "Invalid Email format" });
+    }
+
+    const cleanEmail = admin_email.toLowerCase().trim();
+    
+    // 2. Business Logic (Check if exists)
+    const existing = await findUserByEmail(cleanEmail);
+    if (existing) return res.status(409).json({ error: "User already exists" });
+
+    // 3. Hashing (Usually done before the controller to keep controller DB-pure)
+    const saltRounds = 10;
+    const passwordHash = await hash(password, saltRounds);
+
+    // 4. Create company and user
+    const { company, user } = await registerCompany(
+      companyName,
+      admin_email,
+      passwordHash,
+      admin_name
+    )
+
+    return res.status(201).json({ companyId: company.id, userId: user.id });  
+  } catch (error) {
+    console.error("DEBUG ERROR:", error)
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// POST /api/auth/login
+authRouter.post('/login', async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
+
+    const user = await findUserByEmail(email.toLowerCase().trim());
+    if (!user) return res.status(401).json({ error: "Invalid credentials" });
+
+    const match = await compare(password, user.passwordHash);
+    if (!match) return res.status(401).json({ error: "Invalid credentials" });
+
+    const token = jwt.sign(
+      { 
+        sub: user.id,           // 'sub' is standard for Subject (User ID)
+        companyId: user.companyId, 
+        role: user.role, 
+      },
+      JWT_SECRET,
+      { expiresIn: '168h' }       // Token expires in 8 hours
+    );
+
+    return res.status(200).json({ 
+      message: "Login successful", 
+      token, // Send this to the client
+      user: {  
+        id: user.id,
+        role: user.role,
+        companyId: user.companyId
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+// POST /api/auth/generate-key-pair
+authRouter.post('/generate-key-pair', authenticateJWT, allowedRoles(['MAIN_ADMIN']), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing company" });
+    }
+
+    const existantPublicKey = await getPublicKey(companyId)
+
+    if(existantPublicKey?.publicKey) return res.status(409).json({ error: "Keys already generated. Delete it first to create a new one" })
+
+    const { publicKey, secretKey } = await generateKeyPair(companyId)
+    return res.status(201).json({ publicKey, secretKey }); 
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// DELETE /api/auth/delete-key-pair
+authRouter.delete('/delete-key-pair', authenticateJWT, allowedRoles(['MAIN_ADMIN']), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing company" });
+    }
+
+    const { publicKey } = await getPublicKey(companyId)
+    
+    if (!publicKey) {
+      return res.status(400).json({ error: "No public key" });
+    }
+
+    await deleteKeyPair(companyId)
+    return res.status(203).json({ succesful: true }); 
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+// GET /api/auth/get-public-key
+authRouter.get('/get-public-key', authenticateJWT, allowedRoles(['MAIN_ADMIN']), async (req: JWTAuthRequest, res: Response) => {
+  try {
+    const companyId = req.user?.companyId
+
+    if (!companyId) {
+      return res.status(400).json({ error: "Missing company" });
+    }
+    
+    const { publicKey } = await getPublicKey(companyId)
+    
+    if (!publicKey) {
+      return res.status(400).json({ error: "No public key" });
+    }
+
+    return res.status(200).json({ publicKey });  
+  } catch (error) {
+    return res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
+
+export default authRouter;
