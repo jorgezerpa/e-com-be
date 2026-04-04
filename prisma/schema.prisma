@@ -22,6 +22,11 @@ enum Currency {
   VES
 }
 
+enum Role {
+  ADMIN
+  // CLIENT
+}
+
 // Basic registration flow
 /*
 1. New client sign in by registering a new User 
@@ -37,12 +42,14 @@ model User {
   auth    Auth      @relation(fields: [authId], references: [id])
   authId  Int       @unique
   company Company[]
+  orders  Order[]
 }
 
 model Auth {
   id           Int    @id @default(autoincrement())
   email        String @unique
   passwordHash String
+  role         Role
   user         User?
 }
 
@@ -136,6 +143,8 @@ model ProductImage {
 model Order {
   id            Int          @id @default(autoincrement())
   state         OrderState   @default(PENDING)
+
+  trackingToken  String   @unique @default(uuid()) // used on the magic link sended on the email to allow user to see its order when buy without register
     
   totalAmount   Decimal      @db.Decimal(10, 2)
   createdAt     DateTime     @default(now())
@@ -175,6 +184,10 @@ model Order {
   companyId     Int
   items                           OrderItem[]
   orderEvents   OrderEvent[] // history traseability
+
+  // Optional: If user signs up, we create a user to be assigned for this orders (look for orders with the same email to relate)
+  userId         Int?     // Nullable for Guest checkouts
+  user           User?    @relation(fields: [userId], references: [id])
 }
 
 model OrderEvent {
