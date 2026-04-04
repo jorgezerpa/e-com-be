@@ -8,8 +8,8 @@ export const createPaymentMethodValidator = () => checkSchema({
   name: { in: ['body'], notEmpty: true, isString: true },
   description: { in: ['body'], optional: true, isString: true },
   provider: { in: ['body'], notEmpty: true, isString: true },
-  receiverFields: { in: ['body'], notEmpty: true, isString: true },
-  fields: { in: ['body'], notEmpty: true }, // Add custom JSON validator if strictly needed
+  receiverFields: { in: ['body'], notEmpty: true },
+  fields: { in: ['body'], notEmpty: true }, // @todo Add custom JSON validator for all JSON fields
 });
 
 // use in GET /methods/payment-methods route

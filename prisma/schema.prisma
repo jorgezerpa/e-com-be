@@ -56,7 +56,7 @@ model Auth {
 model Company {
   id        Int        @id @default(autoincrement())
   admin     User       @relation(fields: [adminId], references: [id])
-  adminId   Int        @unique
+  adminId   Int        
   name      String
   createdAt DateTime   @default(now())
   
@@ -227,7 +227,7 @@ model OrderPaymentMethod {
   name          String        // "Visa **** 1234"
   description   String?
   provider      String        // "Stripe", "paypal", other
-  receiverFields String // where to pay (bank account number to transfer, holder ID, etc)
+  receiverFields Json // where to pay (bank account number to transfer, holder ID, etc)
   fields        Json // [{label: description}] -> fields to be provided by the buyer like screenshot of the transaction
 
   // 1 Company has many payment methods

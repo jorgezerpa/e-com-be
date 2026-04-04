@@ -10,7 +10,6 @@ export interface BasicAuthRequest extends Request {
 export interface JWTAuthRequest extends Request {
   user?: {
     id: number;
-    companyId: number;
     role: string;
   };
 }

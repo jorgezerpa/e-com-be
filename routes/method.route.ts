@@ -17,6 +17,7 @@ router.post('/payment-methods', authenticateJWT, allowedRoles(['ADMIN']), create
     });
     res.status(201).json(method);
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error: 'Failed to create payment method' });
   }
 });

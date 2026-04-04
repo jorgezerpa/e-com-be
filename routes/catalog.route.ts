@@ -88,6 +88,7 @@ router.post('/products', authenticateJWT, allowedRoles(['ADMIN']), createProduct
   }
 });
 
+// @todo get by category
 router.get('/products', getProductValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = req.query.id ? Number(req.query.id) : undefined;

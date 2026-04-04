@@ -3,11 +3,6 @@ import { checkSchema } from 'express-validator';
 
 // use in POST /company route
 export const createCompanyValidator = () => checkSchema({
-  adminId: {
-    in: ['body'],
-    isInt: { errorMessage: 'adminId must be an integer' },
-    toInt: true,
-  },
   name: {
     in: ['body'],
     notEmpty: { errorMessage: 'Company name is required' },

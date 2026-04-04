@@ -9,7 +9,8 @@ const router = Router();
 // Create Company (includes Config creation)
 router.post('/', authenticateJWT, allowedRoles(['ADMIN']), createCompanyValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
-    const { adminId, name, colors, currency, showOutOfStockProducts } = req.body;
+    const { name, colors, currency, showOutOfStockProducts } = req.body;
+    const adminId = (req as any).user.id
     const company = await prisma.company.create({
       data: {
         adminId: Number(adminId),
@@ -26,6 +27,7 @@ router.post('/', authenticateJWT, allowedRoles(['ADMIN']), createCompanyValidato
     });
     res.status(201).json(company);
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error: 'Failed to create company' });
   }
 });

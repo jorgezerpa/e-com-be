@@ -9,11 +9,6 @@ export const createOrderValidator = () => checkSchema({
     isInt: true,
     toInt: true,
   },
-  totalAmount: {
-    in: ['body'],
-    isFloat: true,
-    toFloat: true,
-  },
   state: {
     in: ['body'],
     optional: true,
@@ -28,24 +23,15 @@ export const createOrderValidator = () => checkSchema({
   customer_email: { in: ['body'], optional: true, isEmail: true },
   customer_address: { in: ['body'], optional: true, isString: true },
   
-  shipping_country: { in: ['body'], notEmpty: true, isString: true },
-  shipping_city: { in: ['body'], notEmpty: true, isString: true },
-  shipping_zipCode: { in: ['body'], notEmpty: true, isString: true },
-  shipping_name_at_purchase: { in: ['body'], notEmpty: true, isString: true },
-  shipping_provider_at_purchase: { in: ['body'], notEmpty: true, isString: true },
-  shipping_fields_at_purchase: { in: ['body'], notEmpty: true },
-  shipping_fields_response: { in: ['body'], notEmpty: true },
-  
-  payment_name_at_purchase: { in: ['body'], notEmpty: true, isString: true },
-  payment_provider_at_purchase: { in: ['body'], notEmpty: true, isString: true },
-  payment_fields_at_purchase: { in: ['body'], notEmpty: true },
-  payment_fields_response: { in: ['body'], notEmpty: true },
-  
-  items: {
-    in: ['body'],
-    isArray: { errorMessage: 'items must be an array of order items' },
-    notEmpty: true,
+  paymentMethodId: { in: ['body'], isInt: true, toInt: true },
+  shippingMethodId: { in: ['body'], isInt: true, toInt: true },
+  requestedItems: {
+      in: ['body'],
+      isArray: { errorMessage: 'requestedItems must be an array' },
+      notEmpty: true,
   },
+  'requestedItems.*.productId': { isInt: true, toInt: true },
+  'requestedItems.*.quantity': { isInt: { options: { min: 1 } }, toInt: true },
 });
 
 // use in GET /orders route

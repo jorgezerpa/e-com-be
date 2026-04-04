@@ -4,6 +4,8 @@ import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware'
 import { checkSchema } from 'express-validator';
 import { validateRequest } from '../validators/validatorRequest';
 import { createOrderValidator, deleteOrderValidator, getOrderValidator, updateOrderValidator } from '../validators/order.validator';
+import { Decimal } from '@prisma/client/runtime/client';
+import { Currency } from '../generated/prisma/enums';
 
 const router = Router();
 
@@ -12,60 +14,144 @@ const router = Router();
 router.post('/', createOrderValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const { 
-      companyId, totalAmount, state, items,
+      companyId, 
+      requestedItems, // Array of: { productId: number, quantity: number }
+      paymentMethodId, shippingMethodId,
       customer_firstName, customer_lastName, customer_whatsapp_number,
       customer_identification_number, customer_email, customer_address,
       shipping_country, shipping_city, shipping_zipCode,
-      shipping_name_at_purchase, shipping_provider_at_purchase,
-      shipping_fields_at_purchase, shipping_fields_response,
-      payment_name_at_purchase, payment_provider_at_purchase,
-      payment_fields_at_purchase, payment_fields_response,
+      shipping_fields_response, payment_fields_response,
       originFields
     } = req.body;
 
-    const order = await prisma.order.create({
-      data: {
-        companyId: Number(companyId),
-        totalAmount,
-        state: state || 'PENDING',
-        customer_firstName,
-        customer_lastName,
-        customer_whatsapp_number,
-        customer_identification_number,
-        customer_email,
-        customer_address,
-        shipping_country,
-        shipping_city,
-        shipping_zipCode,
-        shipping_name_at_purchase,
-        shipping_provider_at_purchase,
-        shipping_fields_at_purchase,
-        shipping_fields_response,
-        payment_name_at_purchase,
-        payment_provider_at_purchase,
-        payment_fields_at_purchase,
-        payment_fields_response,
-        originFields,
-        items: {
-          create: items // Array of order items mapped to the OrderItem schema
-        },
-        orderEvents: {
-          create: {
-            state: state || 'PENDING',
-            notes: [`Order created on ${new Date().toISOString()}`]
+    const parsedCompanyId = Number(companyId);
+
+    // 1. Validate Payment and Shipping Methods against the DB
+    const [paymentMethod, shippingMethod] = await Promise.all([
+      prisma.orderPaymentMethod.findUnique({ where: { id: Number(paymentMethodId) } }),
+      prisma.orderShippingMethod.findUnique({ where: { id: Number(shippingMethodId) } })
+    ]);
+
+    if (!paymentMethod || paymentMethod.companyId !== parsedCompanyId) {
+      return res.status(400).json({ error: 'Invalid or missing payment method' });
+    }
+    if (!shippingMethod || shippingMethod.companyId !== parsedCompanyId) {
+      return res.status(400).json({ error: 'Invalid or missing shipping method' });
+    }
+
+    // 2. Fetch Products and Company Currency
+    // @todo check for no repeated ids, and check for products list to have the same length
+    const productIds = requestedItems.map((item: { productId: number }) => item.productId);
+    
+    const [products, companyConfig] = await Promise.all([
+      prisma.product.findMany({ where: { id: { in: productIds }, companyId: parsedCompanyId } }),
+      prisma.companyConfig.findUnique({ where: { companyId: parsedCompanyId } })
+    ]);
+
+    const currency = companyConfig?.currency;
+
+    if(!currency) {
+      return res.status(400).json({ error: 'Invalid/unexistant company currency' });
+    }
+
+    // 3. Verify Stock and Calculate Totals
+    let totalAmount = 0;
+    const orderItemsData:{
+        productId: number,
+        quantity: number,
+        priceAtPurchase: Decimal,
+        currencyAtPurchase: Currency,
+        nameAtPurchase: string,
+      }[] = [];
+
+    for (const reqItem of requestedItems) {
+      const product = products.find(p => p.id === reqItem.productId);
+
+      // Does the product exist?
+      if (!product) {
+        return res.status(400).json({ error: `Product with ID ${reqItem.productId} not found` });
+      }
+
+      // Is there enough stock?
+      if (product.stock < reqItem.quantity) {
+        return res.status(400).json({ error: `Not enough stock for product: ${product.name}` });
+      }
+
+      // Calculate total securely on the backend
+      totalAmount += Number(product.price) * reqItem.quantity;
+
+      // Build the snapshot for the OrderItem table
+      orderItemsData.push({
+        productId: product.id,
+        quantity: reqItem.quantity,
+        priceAtPurchase: product.price,
+        currencyAtPurchase: currency,
+        nameAtPurchase: product.name,
+      });
+    }
+
+    // 4. Execute DB Operations safely in a Transaction
+    const order = await prisma.$transaction(async (tx) => {
+      
+      // A. Decrement stock for all purchased items
+      for (const item of requestedItems) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
+        });
+      }
+
+      // B. Create the actual order using the DB snapshots
+      return await tx.order.create({
+        data: {
+          companyId: parsedCompanyId,
+          totalAmount,
+          state: 'PENDING',
+          customer_firstName,
+          customer_lastName,
+          customer_whatsapp_number,
+          customer_identification_number,
+          customer_email,
+          customer_address,
+          shipping_country,
+          shipping_city,
+          shipping_zipCode,
+          
+          // Snapshot from Shipping Method DB
+          shipping_name_at_purchase: shippingMethod.name,
+          shipping_provider_at_purchase: shippingMethod.provider,
+          shipping_fields_at_purchase: shippingMethod.fields || {},
+          shipping_fields_response: shipping_fields_response || {},
+          
+          // Snapshot from Payment Method DB
+          payment_name_at_purchase: paymentMethod.name,
+          payment_provider_at_purchase: paymentMethod.provider,
+          payment_fields_at_purchase: paymentMethod.fields || {},
+          payment_fields_response: payment_fields_response || {},
+          
+          originFields: originFields || {},
+          
+          items: {
+            create: orderItemsData
+          },
+          orderEvents: {
+            create: {
+              state: 'PENDING',
+              notes: [`Order created on ${new Date().toISOString()}`]
+            }
           }
-        }
-      },
-      include: { items: true, orderEvents: true }
+        },
+        include: { items: true, orderEvents: true }
+      });
     });
 
-    const uuidIdentifier = order.trackingToken
+    const uuidIdentifier = order.trackingToken;
 
     // @todo send email with the magic link
 
-
     res.status(201).json(order);
   } catch (error) {
+    console.error("Order Creation Error:", error);
     res.status(500).json({ error: 'Failed to create order' });
   }
 });
@@ -93,6 +179,7 @@ router.get('/', authenticateJWT, allowedRoles(['ADMIN']), getOrderValidator(), v
 });
 
 // Update Order (and push a new event to the trace)
+// @todo handle collaterals in order updates, for example, if an order is Cancelled, you must increase the stock of the product again 
 router.put('/', authenticateJWT, allowedRoles(['ADMIN']), updateOrderValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);

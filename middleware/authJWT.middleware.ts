@@ -21,8 +21,7 @@ export const authenticateJWT = (req: JWTAuthRequest, res: Response, next: NextFu
         // Attach the user data to the request object
         req.user = {
           id: payload.sub, // id in User tab
-          companyId: payload.companyId,
-          role: payload.role
+          role: payload.role// ??optional
         };
         next();
       });
