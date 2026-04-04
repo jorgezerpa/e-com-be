@@ -1,12 +1,15 @@
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import {prisma} from "../lib/prisma"
 import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware';
+import { checkSchema } from 'express-validator';
+import { validateRequest } from '../validators/validatorRequest';
+import { createOrderValidator, deleteOrderValidator, getOrderValidator, updateOrderValidator } from '../validators/order.validator';
 
 const router = Router();
 
 // Create Order (with items and initial event)
 // @todo secure this to be called (almost) only from my frontend (it's impossible to make this impossible, but I can make it very very hard)
-router.post('/', async (req, res) => {
+router.post('/', createOrderValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const { 
       companyId, totalAmount, state, items,
@@ -67,7 +70,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-router.get('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.get('/', authenticateJWT, allowedRoles(['ADMIN']), getOrderValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = req.query.id ? Number(req.query.id) : undefined;
     const companyId = req.query.companyId ? Number(req.query.companyId) : undefined;
@@ -90,7 +93,7 @@ router.get('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
 });
 
 // Update Order (and push a new event to the trace)
-router.put('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.put('/', authenticateJWT, allowedRoles(['ADMIN']), updateOrderValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     const { state, notes } = req.body; // Pass notes for the event log
@@ -122,7 +125,7 @@ router.put('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
 });
 
 // Delete Order
-router.delete('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.delete('/', authenticateJWT, allowedRoles(['ADMIN']), deleteOrderValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     await prisma.order.delete({ where: { id } });
@@ -200,6 +203,5 @@ router.get('/tracking/:uuid', async (req, res) => {
 //     res.status(500).json({ error: 'Failed to fetch order history' });
 //   }
 // });
-
 
 export default router;

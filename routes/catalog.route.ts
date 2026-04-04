@@ -1,13 +1,15 @@
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import {prisma} from "../lib/prisma"
 import { authenticateJWT, allowedRoles } from '../middleware/authJWT.middleware';
+import { createCategoryValidator, createProductValidator, deleteCategoryValidator, deleteProductValidator, getCategoryValidator, getProductValidator, updateCategoryValidator, updateProductValidator } from '../validators/catalog.validator';
+import { validateRequest } from '../validators/validatorRequest';
 
 const router = Router();
 
 
 // =================== CATEGORIES ===================
 
-router.post('/categories', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.post('/categories', authenticateJWT, allowedRoles(['ADMIN']), createCategoryValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const { name, description, companyId } = req.body;
     const category = await prisma.category.create({
@@ -19,7 +21,7 @@ router.post('/categories', authenticateJWT, allowedRoles(['ADMIN']), async (req,
   }
 });
 
-router.get('/categories', async (req, res) => {
+router.get('/categories', getCategoryValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = req.query.id ? Number(req.query.id) : undefined;
     const companyId = req.query.companyId ? Number(req.query.companyId) : undefined;
@@ -36,7 +38,7 @@ router.get('/categories', async (req, res) => {
   }
 });
 
-router.put('/categories', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.put('/categories', authenticateJWT, allowedRoles(['ADMIN']), updateCategoryValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     const { name, description } = req.body;
@@ -50,7 +52,7 @@ router.put('/categories', authenticateJWT, allowedRoles(['ADMIN']), async (req, 
   }
 });
 
-router.delete('/categories', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.delete('/categories', authenticateJWT, allowedRoles(['ADMIN']), deleteCategoryValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     await prisma.category.delete({ where: { id } });
@@ -62,7 +64,7 @@ router.delete('/categories', authenticateJWT, allowedRoles(['ADMIN']), async (re
 
 // =================== PRODUCTS ===================
 
-router.post('/products', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.post('/products', authenticateJWT, allowedRoles(['ADMIN']), createProductValidator(), validateRequest,  async (req: Request, res: Response) => {
   try {
     const { name, description, price, sku, stock, companyId, categoryIds } = req.body;
     
@@ -86,7 +88,7 @@ router.post('/products', authenticateJWT, allowedRoles(['ADMIN']), async (req, r
   }
 });
 
-router.get('/products', async (req, res) => {
+router.get('/products', getProductValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = req.query.id ? Number(req.query.id) : undefined;
     const companyId = req.query.companyId ? Number(req.query.companyId) : undefined;
@@ -107,7 +109,7 @@ router.get('/products', async (req, res) => {
   }
 });
 
-router.put('/products',  authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.put('/products',  authenticateJWT, allowedRoles(['ADMIN']), updateProductValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     const { name, description, price, sku, stock } = req.body;
@@ -121,7 +123,7 @@ router.put('/products',  authenticateJWT, allowedRoles(['ADMIN']), async (req, r
   }
 });
 
-router.delete('/products',  authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.delete('/products',  authenticateJWT, allowedRoles(['ADMIN']), deleteProductValidator, validateRequest, async (req, res) => {
   try {
     const id = Number(req.query.id);
     await prisma.product.delete({ where: { id } });
@@ -130,5 +132,7 @@ router.delete('/products',  authenticateJWT, allowedRoles(['ADMIN']), async (req
     res.status(500).json({ error: 'Failed to delete product' });
   }
 });
+
+
 
 export default router;

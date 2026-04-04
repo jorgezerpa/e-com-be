@@ -1,11 +1,13 @@
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import {prisma} from "../lib/prisma"
 import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware';
+import { validateRequest } from '../validators/validatorRequest';
+import { createCompanyValidator, deleteCompanyValidator, getCompanyValidator, updateCompanyConfigValidator, updateCompanyValidator } from '../validators/company.validator';
 
 const router = Router();
 
 // Create Company (includes Config creation)
-router.post('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.post('/', authenticateJWT, allowedRoles(['ADMIN']), createCompanyValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const { adminId, name, colors, currency, showOutOfStockProducts } = req.body;
     const company = await prisma.company.create({
@@ -29,7 +31,7 @@ router.post('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
 });
 
 // Get Company (or all companies)
-router.get('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.get('/', authenticateJWT, allowedRoles(['ADMIN']), getCompanyValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = req.query.id ? Number(req.query.id) : undefined;
     if (id) {
@@ -47,7 +49,7 @@ router.get('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
 });
 
 // Update Company
-router.put('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.put('/', authenticateJWT, allowedRoles(['ADMIN']), updateCompanyValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     const { name } = req.body;
@@ -62,7 +64,7 @@ router.put('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
 });
 
 // Update Company Config
-router.put('/config', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.put('/config', authenticateJWT, allowedRoles(['ADMIN']), updateCompanyConfigValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const companyId = Number(req.query.companyId);
     const { colors, currency, showOutOfStockProducts } = req.body;
@@ -77,7 +79,7 @@ router.put('/config', authenticateJWT, allowedRoles(['ADMIN']), async (req, res)
 });
 
 // Delete Company
-router.delete('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.delete('/', authenticateJWT, allowedRoles(['ADMIN']), deleteCompanyValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     await prisma.company.delete({ where: { id } });
@@ -86,5 +88,9 @@ router.delete('/', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) =>
     res.status(500).json({ error: 'Failed to delete company' });
   }
 });
+
+
+
+
 
 export default router;

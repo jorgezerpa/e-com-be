@@ -1,12 +1,15 @@
-import { Router } from 'express';
+import { Request, Response, Router } from 'express';
 import {prisma} from "../lib/prisma"
 import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware';
+import { checkSchema } from 'express-validator';
+import { createPaymentMethodValidator, createShippingMethodValidator, deletePaymentMethodValidator, deleteShippingMethodValidator, getPaymentMethodValidator, getShippingMethodValidator, updatePaymentMethodValidator, updateShippingMethodValidator } from '../validators/method.validator';
+import { validateRequest } from '../validators/validatorRequest';
 
 const router = Router();
 
 // =================== PAYMENT METHODS ===================
 
-router.post('/payment-methods', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.post('/payment-methods', authenticateJWT, allowedRoles(['ADMIN']), createPaymentMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const { name, description, provider, receiverFields, fields, companyId } = req.body;
     const method = await prisma.orderPaymentMethod.create({
@@ -18,7 +21,7 @@ router.post('/payment-methods', authenticateJWT, allowedRoles(['ADMIN']), async 
   }
 });
 
-router.get('/payment-methods', async (req, res) => {
+router.get('/payment-methods', getPaymentMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = req.query.id ? Number(req.query.id) : undefined;
     const companyId = req.query.companyId ? Number(req.query.companyId) : undefined;
@@ -35,7 +38,7 @@ router.get('/payment-methods', async (req, res) => {
   }
 });
 
-router.put('/payment-methods',  authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.put('/payment-methods',  authenticateJWT, allowedRoles(['ADMIN']), updatePaymentMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     const { name, description, provider, receiverFields, fields } = req.body;
@@ -49,7 +52,7 @@ router.put('/payment-methods',  authenticateJWT, allowedRoles(['ADMIN']), async 
   }
 });
 
-router.delete('/payment-methods', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.delete('/payment-methods', authenticateJWT, allowedRoles(['ADMIN']), deletePaymentMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     await prisma.orderPaymentMethod.delete({ where: { id } });
@@ -61,7 +64,7 @@ router.delete('/payment-methods', authenticateJWT, allowedRoles(['ADMIN']), asyn
 
 // =================== SHIPPING METHODS ===================
 
-router.post('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.post('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), createShippingMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const { name, description, provider, fields, companyId } = req.body;
     const method = await prisma.orderShippingMethod.create({
@@ -73,7 +76,7 @@ router.post('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), async
   }
 });
 
-router.get('/shipping-methods', async (req, res) => {
+router.get('/shipping-methods', getShippingMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = req.query.id ? Number(req.query.id) : undefined;
     const companyId = req.query.companyId ? Number(req.query.companyId) : undefined;
@@ -90,7 +93,7 @@ router.get('/shipping-methods', async (req, res) => {
   }
 });
 
-router.put('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.put('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), updateShippingMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     const { name, description, provider, fields } = req.body;
@@ -104,7 +107,7 @@ router.put('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), async 
   }
 });
 
-router.delete('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), async (req, res) => {
+router.delete('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), deleteShippingMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     await prisma.orderShippingMethod.delete({ where: { id } });
@@ -113,5 +116,8 @@ router.delete('/shipping-methods', authenticateJWT, allowedRoles(['ADMIN']), asy
     res.status(500).json({ error: 'Failed to delete shipping method' });
   }
 });
+
+
+
 
 export default router;
