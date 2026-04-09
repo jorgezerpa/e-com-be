@@ -72,7 +72,6 @@ model Company {
 
 model CompanyConfig {
   id        Int        @id @default(autoincrement())
-  colors    String[] // 3 main colors to use on the store
   currency  Currency // The currency used and corresponding to the price INT your products have @todo Create a controller "switchCurrency" that receives params currA, currB, convertionFactor (1 currA is X currB) and update all the product's prices accordingly -> This is useful in many cases like switching currencies 
   showOutOfStockProducts Boolean // Still show a card but disable the buy button and renders "out of stock" feedback on UI
   
@@ -94,6 +93,7 @@ model ShipmentOrigin {
 
 model Product {
   id          Int      @id @default(autoincrement())
+  disabled    Boolean  @default(false)
   name        String
   description String?
   price       Decimal  @db.Decimal(10, 2)

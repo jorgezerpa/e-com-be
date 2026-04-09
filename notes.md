@@ -1,3 +1,7 @@
+# TODOS
+- handle products img upload 
+
+
 ## Admin flow
 - Admins are registered under the User entity. 
 - The basic flow:

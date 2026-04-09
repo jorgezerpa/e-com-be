@@ -102,7 +102,8 @@ router.get('/products', getProductValidator(), validateRequest, async (req: Requ
     }
     const products = await prisma.product.findMany({
       where: companyId ? { companyId } : undefined,
-      include: { categories: true }
+      include: { categories: true, images: true },
+      orderBy: { createdAt: "desc" }
     });
     res.json(products);
   } catch (error) {
@@ -113,10 +114,10 @@ router.get('/products', getProductValidator(), validateRequest, async (req: Requ
 router.put('/products',  authenticateJWT, allowedRoles(['ADMIN']), updateProductValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
-    const { name, description, price, sku, stock } = req.body;
+    const { name, description, price, sku, stock, disabled } = req.body;
     const product = await prisma.product.update({
       where: { id },
-      data: { name, description, price, sku, stock },
+      data: { name, description, price, sku, stock, disabled },
     });
     res.json(product);
   } catch (error) {
@@ -124,7 +125,7 @@ router.put('/products',  authenticateJWT, allowedRoles(['ADMIN']), updateProduct
   }
 });
 
-router.delete('/products',  authenticateJWT, allowedRoles(['ADMIN']), deleteProductValidator, validateRequest, async (req, res) => {
+router.delete('/products',  authenticateJWT, allowedRoles(['ADMIN']), deleteProductValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
     await prisma.product.delete({ where: { id } });

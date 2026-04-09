@@ -9,7 +9,7 @@ const router = Router();
 // Create Company (includes Config creation)
 router.post('/', authenticateJWT, allowedRoles(['ADMIN']), createCompanyValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
-    const { name, colors, currency, showOutOfStockProducts } = req.body;
+    const { name, currency, showOutOfStockProducts } = req.body;
     const adminId = (req as any).user.id
     const company = await prisma.company.create({
       data: {
@@ -17,7 +17,6 @@ router.post('/', authenticateJWT, allowedRoles(['ADMIN']), createCompanyValidato
         name,
         companyConfig: {
           create: {
-            colors: colors || [],
             currency: currency || 'USD',
             showOutOfStockProducts: showOutOfStockProducts ?? false,
           },
@@ -43,8 +42,19 @@ router.get('/', authenticateJWT, allowedRoles(['ADMIN']), getCompanyValidator(),
       });
       return res.json(company);
     }
-    const companies = await prisma.company.findMany();
-    res.json(companies);
+    const companies = await prisma.company.findMany({ 
+      include: {
+        _count: {
+          select: {
+            products: true,
+            orders: true
+          }
+        }
+      }
+     });
+    
+     const result = companies.map(c => ({ id: c.id, name: c.name, stats: { products: c._count.products, orders: c._count.orders }  }))
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch companies' });
   }
@@ -69,10 +79,10 @@ router.put('/', authenticateJWT, allowedRoles(['ADMIN']), updateCompanyValidator
 router.put('/config', authenticateJWT, allowedRoles(['ADMIN']), updateCompanyConfigValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const companyId = Number(req.query.companyId);
-    const { colors, currency, showOutOfStockProducts } = req.body;
+    const { currency, showOutOfStockProducts } = req.body;
     const config = await prisma.companyConfig.update({
       where: { companyId },
-      data: { colors, currency, showOutOfStockProducts },
+      data: { currency, showOutOfStockProducts },
     });
     res.json(config);
   } catch (error) {

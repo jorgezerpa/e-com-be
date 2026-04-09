@@ -122,7 +122,7 @@ export const getProductValidator = () => checkSchema({
   },
   companyId: {
     in: ['query'],
-    optional: true,
+    optional: false,
     isInt: true,
     toInt: true,
   },
