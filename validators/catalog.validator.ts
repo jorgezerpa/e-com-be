@@ -21,6 +21,15 @@ export const createCategoryValidator = () => checkSchema({
     optional: true,
     isString: true,
   },
+  color: {
+    in: ['body'],
+    isIn: {
+      options: [['BLUE', 'GREEN', 'PURPLE', 'ORANGE', 'RED', 'PINK']],
+    },
+    optional: false,
+    isString: true,
+    
+  },
 });
 
 // use in GET /catalog/categories route
@@ -57,6 +66,15 @@ export const updateCategoryValidator = () => checkSchema({
     in: ['body'],
     optional: true,
     isString: true,
+  },
+  color: {
+    in: ['body'],
+    isIn: {
+      options: [['BLUE', 'GREEN', 'PURPLE', 'ORANGE', 'RED', 'PINK']],
+    },
+    optional: true,
+    isString: true,
+    
   },
 });
 

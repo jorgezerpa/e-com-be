@@ -27,6 +27,15 @@ enum Role {
   // CLIENT
 }
 
+enum CategoryColors {
+  BLUE
+  GREEN 
+  PURPLE 
+  ORANGE 
+  RED 
+  PINK
+}
+
 // Basic registration flow
 /*
 1. New client sign in by registering a new User 
@@ -121,6 +130,7 @@ model Category {
   id          Int      @id @default(autoincrement())
   name        String
   description String?
+  color       CategoryColors @default(BLUE)
 
   // 1 Company has many categories
   company     Company  @relation(fields: [companyId], references: [id])

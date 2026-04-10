@@ -12,9 +12,9 @@ const router = Router();
 
 router.post('/categories', authenticateJWT, allowedRoles(['ADMIN']), createCategoryValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
-    const { name, description, companyId } = req.body;
+    const { name, description, color, companyId } = req.body;
     const category = await prisma.category.create({
-      data: { name, description, companyId: Number(companyId) },
+      data: { name, description, color, companyId: Number(companyId) },
     });
     res.status(201).json(category);
   } catch (error) {
@@ -32,6 +32,7 @@ router.get('/categories', getCategoryValidator(), validateRequest, async (req: R
     }
     const categories = await prisma.category.findMany({
       where: companyId ? { companyId } : undefined,
+      orderBy: { id: "desc" }
     });
     res.json(categories);
   } catch (error) {
@@ -42,10 +43,10 @@ router.get('/categories', getCategoryValidator(), validateRequest, async (req: R
 router.put('/categories', authenticateJWT, allowedRoles(['ADMIN']), updateCategoryValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
-    const { name, description } = req.body;
+    const { name, description, color } = req.body;
     const category = await prisma.category.update({
       where: { id },
-      data: { name, description },
+      data: { name, description, color },
     });
     res.json(category);
   } catch (error) {
