@@ -126,6 +126,22 @@ export const getProductValidator = () => checkSchema({
     isInt: true,
     toInt: true,
   },
+  searchString: {
+    in: ['query'],
+    optional: true,
+    isString: true
+  },
+  categories: {
+    in: ["query"],
+    optional: true,
+    toArray: true, 
+    isArray: true
+  },
+  'categories.*': {
+    in: ["query"],
+    isInt: true,
+    toInt: true, // Converts strings like "1" to number 1
+  }
 });
 
 // use in PUT /catalog/products route

@@ -3,6 +3,7 @@ import {prisma} from "../lib/prisma"
 import { authenticateJWT, allowedRoles } from '../middleware/authJWT.middleware';
 import { createCategoryValidator, createProductValidator, deleteCategoryValidator, deleteProductValidator, getCategoryValidator, getProductValidator, updateCategoryValidator, updateProductValidator } from '../validators/catalog.validator';
 import { validateRequest } from '../validators/validatorRequest';
+import { matchedData } from 'express-validator';
 
 const router = Router();
 
@@ -88,25 +89,49 @@ router.post('/products', authenticateJWT, allowedRoles(['ADMIN']), createProduct
   }
 });
 
-// @todo get by category
 router.get('/products', getProductValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
-    const id = req.query.id ? Number(req.query.id) : undefined;
-    const companyId = req.query.companyId ? Number(req.query.companyId) : undefined;
+    // 1. Use matchedData to get the validated/casted variables
+    const data = matchedData(req, { locations: ["query"] });
+    const { id, companyId, searchString, categories } = data;
 
     if (id) {
-      return res.json(await prisma.product.findUnique({
+      const product = await prisma.product.findUnique({
         where: { id },
         include: { categories: true, images: true }
-      }));
+      });
+      return res.json(product);
     }
+
     const products = await prisma.product.findMany({
-      where: companyId ? { companyId } : undefined,
+      where: { 
+        companyId, 
+        AND: [
+          // Search filter
+          searchString ? {
+            OR: [
+              { name: { contains: searchString, mode: 'insensitive' } },
+              { sku: { contains: searchString, mode: 'insensitive' } }
+            ]
+          } : {},
+          
+          // 2. Categories filter: Only apply if the array exists and isn't empty
+          categories && categories.length > 0 ? {
+            categories: {
+              some: {
+                id: { in: categories }
+              }
+            }
+          } : {}
+        ]
+      },
       include: { categories: true, images: true },
       orderBy: { createdAt: "desc" }
     });
+
     res.json(products);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Failed to fetch products' });
   }
 });
