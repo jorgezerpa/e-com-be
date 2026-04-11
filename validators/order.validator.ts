@@ -48,6 +48,26 @@ export const getOrderValidator = () => checkSchema({
     isInt: true,
     toInt: true,
   },
+  state: {
+    in: ['query'],
+    optional: true,
+    isIn: {
+      options: [['PENDING', 'PROCESSING', 'SHIPPED', 'FINISHED', 'CANCELLED', 'STUCK', 'REFUNDED']],
+      errorMessage: 'Invalid order state',
+    },
+  },
+  from: {
+    in: ['query'],
+    optional: true,
+    isISO8601: { errorMessage: 'from must be in ISO8601 format' },
+    toDate: true, // Automatically converts to Date object
+  },
+  to: {
+    in: ['query'],
+    optional: true,
+    isISO8601: { errorMessage: 'to must be in ISO8601 format' },
+    toDate: true,
+  },
 });
 
 // use in PUT /orders route

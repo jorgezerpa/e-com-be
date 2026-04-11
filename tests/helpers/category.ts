@@ -7,7 +7,7 @@ export async function createCategory(app: Application, jwt: string, companyId: n
   const res = await request(app)
     .post('/api/catalog/categories')
     .set('Authorization', `Bearer ${jwt}`)
-    .send({ name: "cat1", description: "desc1", companyId })
+    .send({ name: "cat1", description: "desc1", color: "BLUE", companyId })
     .expect(201)
 
   return res.body

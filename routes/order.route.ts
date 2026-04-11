@@ -160,26 +160,46 @@ router.get('/', authenticateJWT, allowedRoles(['ADMIN']), getOrderValidator(), v
   try {
     const id = req.query.id ? Number(req.query.id) : undefined;
     const companyId = req.query.companyId ? Number(req.query.companyId) : undefined;
-
+  
     if (id) {
       return res.json(await prisma.order.findUnique({
-        where: { id },
+        where: { 
+          id, 
+        },
         include: { items: true, orderEvents: true }
       }));
     }
 
+    const state = req.query.state;
+    const from = req.query.from;
+    const to = req.query.to;
+
+    const whereClause:any = {
+      companyId, 
+    }
+    if(state) whereClause.state = state
+    if (from || to) {
+      whereClause.createdAt = {}
+      if(from) whereClause.createdAt.gte = new Date(`${from}`)
+      if(to) whereClause.createdAt.lte = new Date(`${to}`)
+    }
+
     const orders = await prisma.order.findMany({
-      where: companyId ? { companyId } : undefined,
-      include: { items: true }
+      where: whereClause,
+      include: { items: true, orderEvents: true }
     });
     res.json(orders);
   } catch (error) {
+    // console.log(error)
     res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 
+// @todo add trackingID for the product, so is easy to trck where is it, also show it on the UI for orders -> useful when client says "where's my product?" -> PUM is here 
 // Update Order (and push a new event to the trace)
 // @todo handle collaterals in order updates, for example, if an order is Cancelled, you must increase the stock of the product again 
+// @todo create another route to add notes,
+// @dev this route just change the state, and create a new event --> DOES NOT UPDATE any other thing, since is not necessary
 router.put('/', authenticateJWT, allowedRoles(['ADMIN']), updateOrderValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
