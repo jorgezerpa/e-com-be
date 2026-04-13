@@ -10,7 +10,8 @@ export async function createPaymentMethod(
   provider: string, 
   receiverFields: any, // object i.e {title:value} //// where to pay 
   fields: any, // object i.e {"field name": "description of the field"} //// what should I provide after pay (like a payment cap, etc)
-  companyId: number
+  companyId: number,
+  askForPaymentProofImage: boolean
 ):Promise<OrderPaymentMethod>  {
   const res = await request(app)
     .post('/api/method/payment-methods')
@@ -21,7 +22,8 @@ export async function createPaymentMethod(
       description,
       provider,
       receiverFields,
-      fields
+      fields,
+      askForPaymentProofImage
     })
     .expect(201)
 

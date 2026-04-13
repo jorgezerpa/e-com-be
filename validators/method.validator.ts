@@ -8,8 +8,9 @@ export const createPaymentMethodValidator = () => checkSchema({
   name: { in: ['body'], notEmpty: true, isString: true },
   description: { in: ['body'], optional: true, isString: true },
   provider: { in: ['body'], notEmpty: true, isString: true },
-  receiverFields: { in: ['body'], notEmpty: true },
+  receiverFields: { in: ['body'], notEmpty: true }, // @todo improve this check, must be a json file
   fields: { in: ['body'], notEmpty: true }, // @todo Add custom JSON validator for all JSON fields
+  askForPaymentProofImage: { in: ['body'], isBoolean: true, toBoolean: true }
 });
 
 // use in GET /methods/payment-methods route
@@ -24,8 +25,9 @@ export const updatePaymentMethodValidator = () => checkSchema({
   name: { in: ['body'], optional: true, isString: true },
   description: { in: ['body'], optional: true, isString: true },
   provider: { in: ['body'], optional: true, isString: true },
-  receiverFields: { in: ['body'], optional: true, isString: true },
+  receiverFields: { in: ['body'], notEmpty: true }, // @todo improve this check, must be a json file
   fields: { in: ['body'], optional: true },
+  askForPaymentProofImage: { in: ['body'], optional: true, isBoolean: true, toBoolean: true }
 });
 
 // use in DELETE /methods/payment-methods route

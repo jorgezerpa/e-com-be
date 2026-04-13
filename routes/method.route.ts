@@ -11,9 +11,9 @@ const router = Router();
 
 router.post('/payment-methods', authenticateJWT, allowedRoles(['ADMIN']), createPaymentMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
-    const { name, description, provider, receiverFields, fields, companyId } = req.body;
+    const { name, description, provider, receiverFields, fields, companyId, askForPaymentProofImage } = req.body;
     const method = await prisma.orderPaymentMethod.create({
-      data: { name, description, provider, receiverFields, fields, companyId: Number(companyId) },
+      data: { name, description, provider, receiverFields, fields, companyId: Number(companyId), askForPaymentProofImage },
     });
     res.status(201).json(method);
   } catch (error) {
@@ -32,6 +32,7 @@ router.get('/payment-methods', getPaymentMethodValidator(), validateRequest, asy
     }
     const methods = await prisma.orderPaymentMethod.findMany({
       where: companyId ? { companyId } : undefined,
+      orderBy: { name: 'asc' }
     });
     res.json(methods);
   } catch (error) {
@@ -42,10 +43,10 @@ router.get('/payment-methods', getPaymentMethodValidator(), validateRequest, asy
 router.put('/payment-methods',  authenticateJWT, allowedRoles(['ADMIN']), updatePaymentMethodValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
-    const { name, description, provider, receiverFields, fields } = req.body;
+    const { name, description, provider, receiverFields, fields, askForPaymentProofImage } = req.body;
     const method = await prisma.orderPaymentMethod.update({
       where: { id },
-      data: { name, description, provider, receiverFields, fields },
+      data: { name, description, provider, receiverFields, fields, askForPaymentProofImage },
     });
     res.json(method);
   } catch (error) {

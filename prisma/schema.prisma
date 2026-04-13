@@ -243,6 +243,9 @@ model OrderPaymentMethod {
   // 1 Company has many payment methods
   company       Company      @relation(fields: [companyId], references: [id])
   companyId     Int
+
+  // config
+  askForPaymentProofImage Boolean 
 }
 
 model OrderShippingMethod {
