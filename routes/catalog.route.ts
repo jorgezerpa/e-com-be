@@ -120,7 +120,7 @@ router.get('/products', getProductValidator(), validateRequest, async (req: Requ
           categories && categories.length > 0 ? {
             categories: {
               some: {
-                id: { in: categories }
+                id: { in: categories.map((cat:string) => Number(cat)) }
               }
             }
           } : {}

@@ -245,6 +245,7 @@ model OrderPaymentMethod {
   companyId     Int
 
   // config
+  // @todo add "show price" function, this is a catalog online on MVP, then if needed we migrate to ecoomerce 
   askForPaymentProofImage Boolean 
 }
 
