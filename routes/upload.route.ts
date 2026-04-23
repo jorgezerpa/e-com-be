@@ -5,6 +5,7 @@ import multer from 'multer';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import path from 'path';
 import { prisma } from "../lib/prisma";
+import { allowedRoles, authenticateJWT } from '../middleware/authJWT.middleware';
 
 // Initialize S3 Client
 const s3Client = new S3Client({
@@ -26,37 +27,21 @@ export const upload = multer({
 // routes
 const uploadRoute = Router();
 
-uploadRoute.get('/agent-profile', upload.single("profile"), async (req: JWTAuthRequest, res: Response) => {
-  try {
-    if(!req.user?.id || !req.user?.companyId) {
-      return res.status(400).json({ message: 'No user id or company id' });
-    }
-  
-    const result = await prisma.user.findUnique({ where: { id: req.user.id }, include: { agentProfile: true } })
-  
-    return res.status(200).json({ url: result?.agentProfile?.profileImg || null })
-  } catch (error) {
-    return res.status(500).json({ error })
-  }
-})
-
-
 // GET /api/datavis/get_agents_positions
-uploadRoute.post('/agent-profile', upload.single("profile"), async (req: JWTAuthRequest, res: Response) => {
+uploadRoute.post('/product-images', authenticateJWT, allowedRoles(['ADMIN']), upload.single("profile"), async (req: Request, res: Response) => {
   try {
+    // @todo add middleware to check inputs 
     if (!req.file) {
       return res.status(400).json({ message: 'No file uploaded' });
     }
-    if(!req.user?.id || !req.user?.companyId) {
-      return res.status(400).json({ message: 'No user id or company id' });
-    }
 
-    const user = await prisma.user.findUnique({ where: { id: req.user.id, companyId: req.user.companyId }, select: { agentProfile: true } })    
-    if(!user || !user.agentProfile) return res.status(400).json({ message: 'Not existant agent' });
-    const agent = user.agentProfile
+    const productId = req.body.productId
+
+    const product = await prisma.product.findUnique({ where: { id: productId } })    
+    if(!product) return res.status(400).json({ message: 'Product not exists' });
 
     const file = req.file;
-    const fileName = `profiles/${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+    const fileName = `product-${product.id}-${product.name}-${Date.now()}-${Math.round(Math.random() * 1e9)}`;
 
     // 4. Upload to S3
     const uploadParams = {
@@ -73,7 +58,7 @@ uploadRoute.post('/agent-profile', upload.single("profile"), async (req: JWTAuth
     const s3Url = `https://${process.env.AWS_S_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
     /* DATABASE LOGIC */
-    await prisma.agent.update({ where: { id: agent.id }, data: { profileImg: s3Url } })
+    await prisma.product.update({ where: { id: productId }, data: { images: { create: { url:s3Url } } } })
 
     return res.status(200).json({
       message: 'Uploaded to AWS S3 successfully',

@@ -1,6 +1,7 @@
 # TODOS
 - handle products img upload 
-
+- Implement payment flow -> img upload and manual verification
+- I'm not validating that company sended belongs to the jwt user id
 
 ## Admin flow
 - Admins are registered under the User entity. 
