@@ -1,4 +1,30 @@
+# Flows check
+**Register**
+- (F) Enter sign up page 
+- (F) Enter register data (name, email, password)
+- (B) send register data to api and create a new Auth and User Rows
+- (F) on succesful register, use password and email to login
+- [] handle email already registered 
+- [] handle 500 error
+
+**Login**
+
+
+**Create company flow**
+- (F) user gets in main dashboard 
+- (F) Sends a new company required informaton
+- (B) creates company related to the correspondand user 
+- (F) renders new company
+
+
 # TODOS
+- upload product images -> in creation and updates (also handle deletion of images)
+- In register -> Return specific error for duplicated email, and show it on frontend.
+- when click "Create product" "create catergory" -> show loading, then success and close modal 
+- add confirmation modal on delete product/category/order
+- add assign categories functionality on products list (on table, and update/create modal)
+- add buttons with default fields to register a payment method and shipment methods (for common methods)
+- Create 2 modes -> "online catalog" (only products and categories CRUD, no orders can be made from clients) and "full ecommerce" (payment and shipment flows, orders from store,etc)
 - handle products img upload 
 - Implement payment flow -> img upload and manual verification
 - I'm not validating that company sended belongs to the jwt user id

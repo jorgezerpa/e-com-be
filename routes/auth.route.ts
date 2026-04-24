@@ -27,8 +27,9 @@ router.post('/register', registerValidator(), validateRequest, async (req: Reque
       include: { user: true },
     });
 
-    res.status(201).json(auth);
+    res.status(201).json({ success: true });
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error: 'Registration failed' });
   }
 });
