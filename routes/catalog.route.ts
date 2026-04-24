@@ -68,7 +68,7 @@ router.delete('/categories', authenticateJWT, allowedRoles(['ADMIN']), deleteCat
 
 router.post('/products', authenticateJWT, allowedRoles(['ADMIN']), createProductValidator(), validateRequest,  async (req: Request, res: Response) => {
   try {
-    const { name, description, price, sku, stock, companyId, categoryIds } = req.body;
+    const { name, description, price, sku, stock, companyId, categoryIds, images } = req.body;
     
     // categoryIds should be an array of IDs: [1, 2, 3]
     const categoriesConnection = categoryIds?.map((id: number) => ({ id })) || [];
@@ -81,7 +81,15 @@ router.post('/products', authenticateJWT, allowedRoles(['ADMIN']), createProduct
         sku,
         stock,
         companyId: Number(companyId),
-        categories: { connect: categoriesConnection }
+        categories: { connect: categoriesConnection },
+        images: {  
+          create: images
+          .map((img: any, index: number) => ({
+            url: img.url,
+            index
+          }))
+
+        },
       },
     });
     res.status(201).json(product);
@@ -126,7 +134,7 @@ router.get('/products', getProductValidator(), validateRequest, async (req: Requ
           } : {}
         ]
       },
-      include: { categories: true, images: true },
+      include: { categories: true, images: { orderBy: { index:"asc" } } },
       orderBy: { createdAt: "desc" }
     });
 
@@ -140,13 +148,31 @@ router.get('/products', getProductValidator(), validateRequest, async (req: Requ
 router.put('/products',  authenticateJWT, allowedRoles(['ADMIN']), updateProductValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
-    const { name, description, price, sku, stock, disabled } = req.body;
+    const { name, description, price, sku, stock, disabled, images } = req.body;
     const product = await prisma.product.update({
       where: { id },
-      data: { name, description, price, sku, stock, disabled },
+      data: { 
+        name, description, price, sku, stock, disabled, 
+        images: {
+          update: (images||[])
+            .filter((img: any) => !!img.id)
+            .map((img: any, index:number) => ({
+              where: { id: img.id },
+              data: { url: img.url, index }
+            })),
+          // Create new images
+          create: (images||[])
+            .filter((img: any) => !img.id)
+            .map((img: any, index: number) => ({
+              url: img.url,
+              index
+            }))
+        }
+      }
     });
     res.json(product);
   } catch (error) {
+    console.log(error)
     res.status(500).json({ error: 'Failed to update product' });
   }
 });

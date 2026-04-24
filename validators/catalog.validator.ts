@@ -127,7 +127,14 @@ export const createProductValidator = () => checkSchema({
     in: ['body'],
     optional: true,
     isArray: true,
+    // add format chck -> {...}
   },
+  images: {
+    in: ['body'],
+    optional: true,
+    isArray: true,
+    // @todo add format check -> {url:string}
+  }
 });
 
 // use in GET /catalog/products route
