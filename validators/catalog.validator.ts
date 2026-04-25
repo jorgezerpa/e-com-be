@@ -204,6 +204,18 @@ export const updateProductValidator = () => checkSchema({
     isInt: true,
     toInt: true,
   },
+  images: {
+    in: ['body'],
+    optional: true,
+    isArray: true,
+    // @todo add format check -> {url:string, id?:number}
+  },
+  deletedImageIds: {
+    in: ['body'],
+    optional: true,
+    isArray: true,
+    // @todo add format check -> {id:number}
+  }
 });
 
 // use in DELETE /catalog/products route
