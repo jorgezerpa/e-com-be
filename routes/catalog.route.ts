@@ -148,11 +148,14 @@ router.get('/products', getProductValidator(), validateRequest, async (req: Requ
 router.put('/products',  authenticateJWT, allowedRoles(['ADMIN']), updateProductValidator(), validateRequest, async (req: Request, res: Response) => {
   try {
     const id = Number(req.query.id);
-    const { name, description, price, sku, stock, disabled, images, deletedImageIds } = req.body;
+    const { name, description, price, sku, stock, disabled, images, deletedImageIds, categoryIds } = req.body;
+    const categoriesSet = categoryIds?.map((id: number) => ({ id })) || [];
+
     const product = await prisma.product.update({
       where: { id },
       data: { 
-        name, description, price, sku, stock, disabled, 
+        name, description, price, sku, stock, disabled,
+        categories: { set: categoriesSet }, 
         images: {
           ...(deletedImageIds && deletedImageIds.length > 0 ? {
             deleteMany: {

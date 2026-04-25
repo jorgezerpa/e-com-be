@@ -215,7 +215,13 @@ export const updateProductValidator = () => checkSchema({
     optional: true,
     isArray: true,
     // @todo add format check -> {id:number}
-  }
+  },
+  categoryIds: {
+    in: ['body'],
+    optional: true,
+    isArray: true,
+    // add format chck -> {...}
+  },
 });
 
 // use in DELETE /catalog/products route
